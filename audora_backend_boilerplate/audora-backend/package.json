@@ -1,0 +1,22 @@
+{
+  "name": "audora-backend",
+  "version": "1.0.0",
+  "description": "Backend for AUDORA web app (Phase 2)",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "prisma": "prisma"
+  },
+  "type": "module",
+  "dependencies": {
+    "express": "^4.18.2",
+    "prisma": "^5.0.0",
+    "@prisma/client": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
