@@ -9,7 +9,7 @@ import { FadeIn, SlideInLeft } from '../components/MotionComponents';
 import { 
   Home, Search, Headphones, Radio, PlusSquare, 
   Download, Settings, LogOut, LogIn, UserPlus,
-  Menu, X, Music, Heart, Clock, ChevronRight
+  Menu, X, Music, Heart, Clock, ChevronRight, User
 } from 'lucide-react';
 
 const MainLayout = ({ children }) => {
@@ -29,6 +29,7 @@ const MainLayout = ({ children }) => {
     { icon: <Search size={20} />, text: 'Search', path: '/search' },
     { icon: <Headphones size={20} />, text: 'Podcasts', path: '/podcasts' },
     { icon: <Radio size={20} />, text: 'Live', path: '/live-streaming' },
+    { icon: <User size={20} />, text: 'Profile', path: '/profile' },
   ];
 
   const libraryItems = [
@@ -70,13 +71,15 @@ const MainLayout = ({ children }) => {
             </span>
           )}
           {isAuthenticated ? (
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center"
-            >
-              <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
-            </motion.div>
+            <Link to="/profile">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center"
+              >
+                <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
+              </motion.div>
+            </Link>
           ) : (
             <Link to="/login" className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
               <LogIn size={20} />
@@ -161,22 +164,33 @@ const MainLayout = ({ children }) => {
             {/* User Section */}
             <div className="mt-auto p-3 border-t border-white/5">
               {isAuthenticated ? (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-dark-100/50 backdrop-blur-md">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
-                      <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{user?.name}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                <div>
+                  <Link
+                    to="/profile"
+                    className={`flex items-center justify-between p-3 rounded-lg ${location.pathname === '/profile' 
+                      ? 'bg-primary-600/20 text-primary-400' 
+                      : 'bg-dark-100/50 backdrop-blur-md hover:bg-dark-100/70 transition-colors'}`}
                   >
-                    <LogOut size={18} />
-                  </button>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
+                        <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">{user?.name}</p>
+                        <p className="text-xs text-gray-400">{user?.email}</p>
+                      </div>
+                    </div>
+                    <User size={18} className="text-gray-400" />
+                  </Link>
+                  <div className="flex mt-2">
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <LogOut size={18} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -280,25 +294,37 @@ const MainLayout = ({ children }) => {
                 {/* User Section */}
                 <div className="p-3 border-t border-white/5">
                   {isAuthenticated ? (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-dark-100/50">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
-                          <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">{user?.name}</p>
-                          <p className="text-xs text-gray-400">{user?.email}</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          handleLogout();
-                          setSidebarOpen(false);
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                    <div>
+                      <Link
+                        to="/profile"
+                        className={`flex items-center justify-between p-3 rounded-lg ${location.pathname === '/profile' 
+                          ? 'bg-primary-600/20 text-primary-400' 
+                          : 'bg-dark-100/50 backdrop-blur-md hover:bg-dark-100/70 transition-colors'}`}
+                        onClick={() => setSidebarOpen(false)}
                       >
-                        <LogOut size={18} />
-                      </button>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
+                            <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">{user?.name}</p>
+                            <p className="text-xs text-gray-400">{user?.email}</p>
+                          </div>
+                        </div>
+                        <User size={18} className="text-gray-400" />
+                      </Link>
+                      <div className="flex mt-2">
+                        <button 
+                          onClick={() => {
+                            handleLogout();
+                            setSidebarOpen(false);
+                          }}
+                          className="w-full p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <LogOut size={18} />
+                          <span>Logout</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2">
@@ -327,7 +353,7 @@ const MainLayout = ({ children }) => {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-dark-300 text-white">
+        <main className="flex-1 overflow-y-auto bg-dark-300 text-white pl-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

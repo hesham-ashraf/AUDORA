@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'sonner';
 import AlbumDetail from "./pages/AlbumDetail"; // ✅ import the page
+import Albums from "./pages/Albums"; // ✅ import the Albums page
 import Home from './pages/Home';
 import Search from './pages/Search'; // <-- create this file if not already
 import AudioPlayer from './components/AudioPlayer';
@@ -13,6 +14,7 @@ import PlaylistDetail from "./pages/PlaylistDetail";
 import AdminUpload from './pages/AdminUpload';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Profile from './pages/Profile'; // ✅ import the Profile page
 import OfflineLibrary from './pages/OfflineLibrary';
 import LiveStreaming from './pages/LiveStreaming';
 import { AuthProvider } from './context/AuthContext';
@@ -30,9 +32,18 @@ const AnimatedRoutes = ({ children, setCurrentTrack }) => {
         <Routes location={location}>
           <Route path="/" element={<Home setCurrentTrack={setCurrentTrack} />} />
           <Route path="/search" element={<Search setCurrentTrack={setCurrentTrack} />} />
+          <Route path="/albums" element={<Albums setCurrentTrack={setCurrentTrack} />} /> {/* ✅ add Albums route */}
           <Route path="/albums/:id" element={<AlbumDetail setCurrentTrack={setCurrentTrack} />} /> {/* ✅ add route */}
           <Route path="/podcasts" element={<Podcasts />} />
           <Route path="/podcasts/:id" element={<PodcastDetail setCurrentTrack={setCurrentTrack} />} />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile setCurrentTrack={setCurrentTrack} />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/playlists" 
             element={
@@ -59,7 +70,7 @@ const AnimatedRoutes = ({ children, setCurrentTrack }) => {
           />
           <Route path="/live-streaming" element={<LiveStreaming setCurrentTrack={setCurrentTrack} />} />
           <Route 
-            path="/admin" 
+            path="/admin-upload" 
             element={
               <ProtectedRoute>
                 <AdminUpload />
