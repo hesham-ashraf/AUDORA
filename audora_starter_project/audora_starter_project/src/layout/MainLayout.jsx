@@ -111,31 +111,28 @@ const MainLayout = ({ children }) => {
             <nav className="p-3">
               <p className="text-xs uppercase text-gray-500 font-medium ml-3 mb-2">Menu</p>
               <ul className="space-y-1">
-                {navigationItems.map((item) => {
-                  if (item.requireAuth && !isAuthenticated) return null;
-                  return (
-                    <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                          ${location.pathname === item.path 
-                            ? 'bg-primary-600/20 text-primary-400' 
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                          }`}
-                      >
-                        {item.icon}
-                        <span>{item.text}</span>
-                        {location.pathname === item.path && (
-                          <motion.div
-                            layoutId="nav-indicator"
-                            className="w-1 h-6 bg-primary-500 rounded-full absolute right-0"
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                          />
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
+                {navigationItems.map((item) => (
+                  <li key={item.path}>
+                    <Link
+                      to={item.path}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
+                        ${location.pathname === item.path 
+                          ? 'bg-primary-600/20 text-primary-400' 
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                      {item.icon}
+                      <span>{item.text}</span>
+                      {location.pathname === item.path && (
+                        <motion.div
+                          layoutId="nav-indicator"
+                          className="w-1 h-6 bg-primary-500 rounded-full absolute right-0"
+                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        />
+                      )}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </nav>
             
@@ -248,25 +245,22 @@ const MainLayout = ({ children }) => {
                   <nav className="p-3">
                     <p className="text-xs uppercase text-gray-500 font-medium ml-3 mb-2">Menu</p>
                     <ul className="space-y-1">
-                      {navigationItems.map((item) => {
-                        if (item.requireAuth && !isAuthenticated) return null;
-                        return (
-                          <li key={item.path}>
-                            <Link
-                              to={item.path}
-                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                                ${location.pathname === item.path 
-                                  ? 'bg-primary-600/20 text-primary-400' 
-                                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
-                              onClick={() => setSidebarOpen(false)}
-                            >
-                              {item.icon}
-                              <span>{item.text}</span>
-                            </Link>
-                          </li>
-                        );
-                      })}
+                      {navigationItems.map((item) => (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
+                              ${location.pathname === item.path 
+                                ? 'bg-primary-600/20 text-primary-400' 
+                                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                              }`}
+                            onClick={() => setSidebarOpen(false)}
+                          >
+                            {item.icon}
+                            <span>{item.text}</span>
+                          </Link>
+                        </li>
+                      ))}
                     </ul>
                   </nav>
                   
@@ -359,7 +353,7 @@ const MainLayout = ({ children }) => {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-dark-300 text-white">
+        <main className="flex-1 overflow-y-auto bg-dark-300 text-white pl-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
