@@ -9,7 +9,7 @@ import { FadeIn, SlideInLeft } from '../components/MotionComponents';
 import { 
   Home, Search, Headphones, Radio, PlusSquare, 
   Download, Settings, LogOut, LogIn, UserPlus,
-  Menu, X, Music, Heart, Clock, ChevronRight
+  Menu, X, Music, Heart, Clock, ChevronRight, User
 } from 'lucide-react';
 
 const MainLayout = ({ children }) => {
@@ -29,6 +29,7 @@ const MainLayout = ({ children }) => {
     { icon: <Search size={20} />, text: 'Search', path: '/search' },
     { icon: <Headphones size={20} />, text: 'Podcasts', path: '/podcasts' },
     { icon: <Radio size={20} />, text: 'Live', path: '/live-streaming' },
+    { icon: <User size={20} />, text: 'Profile', path: '/profile' },
   ];
 
   const libraryItems = [
@@ -70,13 +71,15 @@ const MainLayout = ({ children }) => {
             </span>
           )}
           {isAuthenticated ? (
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center"
-            >
-              <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
-            </motion.div>
+            <Link to="/profile">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center"
+              >
+                <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
+              </motion.div>
+            </Link>
           ) : (
             <Link to="/login" className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
               <LogIn size={20} />
@@ -108,28 +111,31 @@ const MainLayout = ({ children }) => {
             <nav className="p-3">
               <p className="text-xs uppercase text-gray-500 font-medium ml-3 mb-2">Menu</p>
               <ul className="space-y-1">
-                {navigationItems.map((item) => (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                        ${location.pathname === item.path 
-                          ? 'bg-primary-600/20 text-primary-400' 
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
-                    >
-                      {item.icon}
-                      <span>{item.text}</span>
-                      {location.pathname === item.path && (
-                        <motion.div
-                          layoutId="nav-indicator"
-                          className="w-1 h-6 bg-primary-500 rounded-full absolute right-0"
-                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        />
-                      )}
-                    </Link>
-                  </li>
-                ))}
+                {navigationItems.map((item) => {
+                  if (item.requireAuth && !isAuthenticated) return null;
+                  return (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
+                          ${location.pathname === item.path 
+                            ? 'bg-primary-600/20 text-primary-400' 
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}
+                      >
+                        {item.icon}
+                        <span>{item.text}</span>
+                        {location.pathname === item.path && (
+                          <motion.div
+                            layoutId="nav-indicator"
+                            className="w-1 h-6 bg-primary-500 rounded-full absolute right-0"
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                          />
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </nav>
             
@@ -161,22 +167,33 @@ const MainLayout = ({ children }) => {
             {/* User Section */}
             <div className="mt-auto p-3 border-t border-white/5">
               {isAuthenticated ? (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-dark-100/50 backdrop-blur-md">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
-                      <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{user?.name}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                <div>
+                  <Link
+                    to="/profile"
+                    className={`flex items-center justify-between p-3 rounded-lg ${location.pathname === '/profile' 
+                      ? 'bg-primary-600/20 text-primary-400' 
+                      : 'bg-dark-100/50 backdrop-blur-md hover:bg-dark-100/70 transition-colors'}`}
                   >
-                    <LogOut size={18} />
-                  </button>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
+                        <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">{user?.name}</p>
+                        <p className="text-xs text-gray-400">{user?.email}</p>
+                      </div>
+                    </div>
+                    <User size={18} className="text-gray-400" />
+                  </Link>
+                  <div className="flex mt-2">
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <LogOut size={18} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -231,22 +248,25 @@ const MainLayout = ({ children }) => {
                   <nav className="p-3">
                     <p className="text-xs uppercase text-gray-500 font-medium ml-3 mb-2">Menu</p>
                     <ul className="space-y-1">
-                      {navigationItems.map((item) => (
-                        <li key={item.path}>
-                          <Link
-                            to={item.path}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                              ${location.pathname === item.path 
-                                ? 'bg-primary-600/20 text-primary-400' 
-                                : 'text-gray-400 hover:text-white hover:bg-white/5'
-                              }`}
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            {item.icon}
-                            <span>{item.text}</span>
-                          </Link>
-                        </li>
-                      ))}
+                      {navigationItems.map((item) => {
+                        if (item.requireAuth && !isAuthenticated) return null;
+                        return (
+                          <li key={item.path}>
+                            <Link
+                              to={item.path}
+                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
+                                ${location.pathname === item.path 
+                                  ? 'bg-primary-600/20 text-primary-400' 
+                                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                }`}
+                              onClick={() => setSidebarOpen(false)}
+                            >
+                              {item.icon}
+                              <span>{item.text}</span>
+                            </Link>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </nav>
                   
@@ -280,25 +300,37 @@ const MainLayout = ({ children }) => {
                 {/* User Section */}
                 <div className="p-3 border-t border-white/5">
                   {isAuthenticated ? (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-dark-100/50">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
-                          <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">{user?.name}</p>
-                          <p className="text-xs text-gray-400">{user?.email}</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          handleLogout();
-                          setSidebarOpen(false);
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                    <div>
+                      <Link
+                        to="/profile"
+                        className={`flex items-center justify-between p-3 rounded-lg ${location.pathname === '/profile' 
+                          ? 'bg-primary-600/20 text-primary-400' 
+                          : 'bg-dark-100/50 backdrop-blur-md hover:bg-dark-100/70 transition-colors'}`}
+                        onClick={() => setSidebarOpen(false)}
                       >
-                        <LogOut size={18} />
-                      </button>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
+                            <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">{user?.name}</p>
+                            <p className="text-xs text-gray-400">{user?.email}</p>
+                          </div>
+                        </div>
+                        <User size={18} className="text-gray-400" />
+                      </Link>
+                      <div className="flex mt-2">
+                        <button 
+                          onClick={() => {
+                            handleLogout();
+                            setSidebarOpen(false);
+                          }}
+                          className="w-full p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <LogOut size={18} />
+                          <span>Logout</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2">
