@@ -74,22 +74,22 @@ const Search = ({ setCurrentTrack }) => {
   return (
     <MainLayout>
       <div className="flex flex-col">
-        <div className="mb-6">
+        <div className="mb-6 flex flex-col items-center">
           <h2 className="text-2xl font-semibold mb-2">Search</h2>
-          <div className="relative">
+          <div className="relative w-full max-w-xl">
             <input
               type="text"
               placeholder="Search for songs, artists, or podcasts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="border border-gray-300 px-4 py-2 rounded-full text-sm w-full max-w-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-10"
+              className="bg-dark-100 border border-white/10 rounded-lg w-full py-2.5 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
             />
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             
             {suggestions.length > 0 && (
-              <div className="absolute z-10 w-full max-w-xl bg-white shadow-lg rounded-md mt-1 border border-gray-200">
+              <div className="absolute z-10 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200">
                 {suggestions.map((suggestion, index) => (
                   <div 
                     key={index} 
@@ -197,7 +197,7 @@ const Search = ({ setCurrentTrack }) => {
                 'Technology', 'True Crime', 'Health', 'Business', 'Comedy'].map(category => (
                 <div 
                   key={category}
-                  className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-full cursor-pointer"
+                  className="px-6 py-3 bg-gradient-to-br from-purple-600 to-blue-500  hover:bg-gray-100 rounded-full cursor-pointer shadow-sm"
                   onClick={() => setSearchTerm(category)}
                 >
                   {category}
@@ -205,24 +205,26 @@ const Search = ({ setCurrentTrack }) => {
               ))}
             </div>
             
-            <h3 className="text-xl font-semibold mb-4 mt-8">Browse All</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              <Link to="/albums" className="bg-gradient-to-br from-purple-600 to-blue-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Albums</h4>
-                <p className="mt-2 text-white/80">Explore our music collection</p>
-              </Link>
-              <Link to="/podcasts" className="bg-gradient-to-br from-green-500 to-teal-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Podcasts</h4>
-                <p className="mt-2 text-white/80">Discover interesting shows</p>
-              </Link>
-              <Link to="/playlists" className="bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Playlists</h4>
-                <p className="mt-2 text-white/80">Browse curated playlists</p>
-              </Link>
-              <Link to="/live-streaming" className="bg-gradient-to-br from-red-600 to-purple-600 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Live</h4>
-                <p className="mt-2 text-white/80">Join live streaming sessions</p>
-              </Link>
+            <div className="mt-16">
+              <h3 className="text-xl font-semibold mb-4">Browse All</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
+                <Link to="/albums" className="bg-gradient-to-br from-purple-600 to-blue-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
+                  <h4 className="text-xl font-bold">Albums</h4>
+                  <p className="mt-2 text-white/80">Explore our music collection</p>
+                </Link>
+                <Link to="/podcasts" className="bg-gradient-to-br from-green-500 to-teal-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
+                  <h4 className="text-xl font-bold">Podcasts</h4>
+                  <p className="mt-2 text-white/80">Discover interesting shows</p>
+                </Link>
+                <Link to="/playlists" className="bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
+                  <h4 className="text-xl font-bold">Playlists</h4>
+                  <p className="mt-2 text-white/80">Browse curated playlists</p>
+                </Link>
+                <Link to="/live-streaming" className="bg-gradient-to-br from-red-599 to-purple-600 rounded-lg p-6 text-white hover:shadow-lg transition-all">
+                  <h4 className="text-xl font-bold">Live</h4>
+                  <p className="mt-2 text-white/80">Join live streaming sessions</p>
+                </Link>
+              </div>
             </div>
           </div>
         )}

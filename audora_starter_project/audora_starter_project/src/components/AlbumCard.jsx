@@ -4,7 +4,7 @@ const AlbumCard = ({ title, artist, image, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow-md hover:shadow-xl hover:scale-105 transition-transform duration-200 cursor-pointer group relative"
+      className="bg-dark-200 rounded-lg shadow-md hover:shadow-xl hover:scale-105 transition-transform duration-200 cursor-pointer group relative border border-white/10"
     >
       <div className="relative">
         <img
@@ -27,8 +27,8 @@ const AlbumCard = ({ title, artist, image, onClick }) => {
         </div>
       </div>
       <div className="p-4">
-        <h3 className="text-lg font-semibold truncate">{title}</h3>
-        <p className="text-sm text-gray-500">{artist}</p>
+        <h3 className="text-lg font-semibold truncate text-white">{title}</h3>
+        <p className="text-sm text-gray-400">{artist}</p>
       </div>
     </div>
   );

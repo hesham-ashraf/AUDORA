@@ -21,12 +21,18 @@ const Register = () => {
       setError('Passwords do not match');
       return;
     }
+
+    if (!email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
     
     try {
       await register(name, email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Failed to register');
+      console.error('Registration error:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to register. Please try again.');
     }
   };
 
