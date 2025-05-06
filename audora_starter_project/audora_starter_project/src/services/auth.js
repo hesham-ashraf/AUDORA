@@ -33,11 +33,12 @@ const register = async (name, email, password) => {
       email,
       password
     });
-    
+
     const { token, user } = response.data;
     setToken(token, user);
     return user;
   } catch (error) {
+    console.error("Registration error:", error.response?.data || error.message); 
     throw error.response?.data?.message || 'Registration failed';
   }
 };

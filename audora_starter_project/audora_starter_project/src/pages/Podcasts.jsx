@@ -35,7 +35,7 @@ const Podcasts = () => {
             <Link
               to={`/podcasts/${podcast.id}`}
               key={podcast.id}
-              className="bg-white rounded-md overflow-hidden shadow hover:shadow-md transition group"
+              className="bg-dark-200 rounded-lg overflow-hidden shadow hover:shadow-md transition group border border-white/10"
             >
               <div className="aspect-square overflow-hidden">
                 <img 
@@ -45,8 +45,8 @@ const Podcasts = () => {
                 />
               </div>
               <div className="p-4">
-                <h3 className="text-lg font-semibold">{podcast.title}</h3>
-                <p className="text-sm text-gray-500">Host: {podcast.host}</p>
+                <h3 className="text-lg font-semibold text-white">{podcast.title}</h3>
+                <p className="text-sm text-gray-400">Host: {podcast.host}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   {podcast.episodes?.length || 0} episode{podcast.episodes?.length !== 1 ? 's' : ''}
                 </p>

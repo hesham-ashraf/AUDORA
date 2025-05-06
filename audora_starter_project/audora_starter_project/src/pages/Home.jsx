@@ -39,7 +39,7 @@ const Home = ({ setCurrentTrack }) => {
                 const isPodcast = 'host' in item;
                 return isPodcast ? (
                   <Link to={`/podcasts/${item.id}`} key={`trending-podcast-${item.id}`} className="group">
-                    <div className="bg-white rounded-md shadow hover:shadow-md transition-all duration-200 overflow-hidden">
+                    <div className="bg-dark-200 rounded-lg shadow hover:shadow-md transition-all duration-200 overflow-hidden border border-white/10">
                       <div className="aspect-square overflow-hidden">
                         <img 
                           src={item.coverUrl} 
@@ -52,8 +52,8 @@ const Home = ({ setCurrentTrack }) => {
                           <span className="mr-1">🎙️</span>
                           <span>Podcast</span>
                         </div>
-                        <h3 className="font-semibold text-lg truncate">{item.title}</h3>
-                        <p className="text-sm text-gray-600 truncate">Host: {item.host}</p>
+                        <h3 className="font-semibold text-lg truncate text-white">{item.title}</h3>
+                        <p className="text-sm text-gray-400 truncate">Host: {item.host}</p>
                       </div>
                     </div>
                   </Link>
@@ -112,7 +112,7 @@ const Home = ({ setCurrentTrack }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {podcasts.slice(0, 5).map((podcast) => (
                 <Link to={`/podcasts/${podcast.id}`} key={podcast.id} className="group">
-                  <div className="bg-white rounded-md shadow hover:shadow-md transition-all duration-200 overflow-hidden">
+                  <div className="bg-dark-200 rounded-lg shadow hover:shadow-md transition-all duration-200 overflow-hidden border border-white/10">
                     <div className="aspect-square overflow-hidden">
                       <img 
                         src={podcast.coverUrl} 
@@ -121,8 +121,12 @@ const Home = ({ setCurrentTrack }) => {
                       />
                     </div>
                     <div className="p-3">
-                      <h3 className="font-semibold text-lg truncate">{podcast.title}</h3>
-                      <p className="text-sm text-gray-600 truncate">Host: {podcast.host}</p>
+                      <div className="flex items-center text-xs text-blue-600 mb-1">
+                        <span className="mr-1">🎙️</span>
+                        <span>Podcast</span>
+                      </div>
+                      <h3 className="font-semibold text-lg truncate text-white">{podcast.title}</h3>
+                      <p className="text-sm text-gray-400 truncate">Host: {podcast.host}</p>
                       <p className="text-xs text-gray-500 mt-1">
                         {podcast.episodes?.length || 0} episode{podcast.episodes?.length !== 1 ? 's' : ''}
                       </p>
@@ -142,7 +146,7 @@ const Home = ({ setCurrentTrack }) => {
                 const isPodcast = 'host' in item;
                 return isPodcast ? (
                   <Link to={`/podcasts/${item.id}`} key={`new-podcast-${item.id}`} className="group">
-                    <div className="bg-white rounded-md shadow hover:shadow-md transition-all duration-200 overflow-hidden">
+                    <div className="bg-dark-200 rounded-lg shadow hover:shadow-md transition-all duration-200 overflow-hidden border border-white/10">
                       <div className="aspect-square overflow-hidden">
                         <img 
                           src={item.coverUrl} 
@@ -155,8 +159,8 @@ const Home = ({ setCurrentTrack }) => {
                           <span className="mr-1">🎙️</span>
                           <span>Podcast</span>
                         </div>
-                        <h3 className="font-semibold text-lg truncate">{item.title}</h3>
-                        <p className="text-sm text-gray-600 truncate">Host: {item.host}</p>
+                        <h3 className="font-semibold text-lg truncate text-white">{item.title}</h3>
+                        <p className="text-sm text-gray-400 truncate">Host: {item.host}</p>
                       </div>
                     </div>
                   </Link>
