@@ -48,16 +48,24 @@ export const albums = [
   },
   {
     id: 4,
-    title: "Eternity",
-    artist: "Chill Artist",
-    coverUrl: "https://i.scdn.co/image/ab67616d0000b273b9a9b36b0e159b3485282cad",
+    title: "El Lilady",
+    artist: "Amr Diab",
+    coverUrl: "https://amrdiab.net/wp-content/uploads/2023/12/Makanak.jpg",
     createdAt: "2025-04-05T16:45:00Z",
     tracks: [
       {
         id: 4,
-        title: "Eternity",
+        title: "El Lilady",
         duration: 195,
-        audioUrl: "https://res.cloudinary.com/dnbk3iouw/video/upload/v1746054386/Eternity_p08yrm.mp3"
+        audioUrl: "https://res.cloudinary.com/dnbk3iouw/video/upload/v1746811912/Amr_Diab_..._El_Lilady_ou602n.mp3"
+      },
+
+
+      {
+        id: 8,
+        title: "Khaleek Maaya",
+        duration: 195,
+        audioUrl: "https://res.cloudinary.com/dnbk3iouw/video/upload/v1746812161/Amr_Diab_..._Khalik_Maaya_zucylt.mp3"
       }
     ]
   },
@@ -112,8 +120,8 @@ export const podcasts = [
   {
     id: 1,
     title: "Deep Dive Talks",
-    host: "Samir Talks",
-    coverUrl: "https://images.unsplash.com/photo-1617926793205-00b1a648ebe9",
+    host: "Evan Talks",
+    coverUrl: "https://images.unsplash.com/photo-1485579149621-3123dd979885?q=80&w=1931&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     createdAt: "2025-04-18T08:30:00Z",
     episodes: [
       {
