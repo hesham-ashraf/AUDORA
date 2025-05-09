@@ -60,6 +60,48 @@ export const uploadAudio = async (req, res) => {
   }
 };
 
+// Upload image file to Cloudinary
+export const uploadImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { type } = req.body;
+    
+    if (!type) {
+      return res.status(400).json({ error: 'Image type is required (album, podcast, user)' });
+    }
+
+    // Upload file to Cloudinary
+    const result = await cloudinaryService.uploadFile(req.file.path, {
+      resource_type: 'image',
+      folder: `audora/images/${type}`
+    });
+
+    // Remove temporary file
+    fs.unlinkSync(req.file.path);
+
+    res.status(201).json({
+      imageUrl: result.secure_url,
+      publicId: result.public_id
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    
+    // Remove temporary file if it exists
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error('Error removing temp file:', err);
+      }
+    }
+    
+    res.status(500).json({ error: 'Failed to upload image file' });
+  }
+};
+
 // Get signed URL for audio file
 export const getSignedUrl = async (req, res) => {
   try {

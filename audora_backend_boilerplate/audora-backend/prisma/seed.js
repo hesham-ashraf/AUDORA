@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clear existing data
+  // Remove all related records first to avoid foreign key constraints
   await prisma.review.deleteMany();
   await prisma.track.deleteMany();
   await prisma.album.deleteMany();
@@ -49,6 +50,9 @@ async function main() {
           }
         ]
       }
+    },
+    include: {
+      tracks: true
     }
   });
 
@@ -66,6 +70,9 @@ async function main() {
           }
         ]
       }
+    },
+    include: {
+      tracks: true
     }
   });
 
@@ -83,6 +90,9 @@ async function main() {
           }
         ]
       }
+    },
+    include: {
+      tracks: true
     }
   });
 
@@ -100,6 +110,9 @@ async function main() {
           }
         ]
       }
+    },
+    include: {
+      tracks: true
     }
   });
 
@@ -117,6 +130,9 @@ async function main() {
           }
         ]
       }
+    },
+    include: {
+      tracks: true
     }
   });
 
@@ -251,9 +267,9 @@ async function main() {
       },
       tracks: {
         connect: [
-          { id: 1 },
-          { id: 2 },
-          { id: 5 }
+          { id: album1.tracks[0].id },
+          { id: album2.tracks[0].id },
+          { id: album5.tracks[0].id }
         ]
       }
     }
@@ -267,8 +283,8 @@ async function main() {
       },
       tracks: {
         connect: [
-          { id: 3 },
-          { id: 4 }
+          { id: album3.tracks[0].id },
+          { id: album4.tracks[0].id }
         ]
       }
     }
@@ -281,8 +297,12 @@ async function main() {
       comment: "Amazing album, love every track!",
       contentType: "album",
       contentId: album1.id,
-      albumId: album1.id,
-      userId: normalUser.id
+      album: {
+        connect: { id: album1.id }
+      },
+      user: {
+        connect: { id: normalUser.id }
+      }
     }
   });
 
@@ -292,8 +312,12 @@ async function main() {
       comment: "Great podcast, very informative.",
       contentType: "podcast",
       contentId: podcast1.id,
-      podcastId: podcast1.id,
-      userId: adminUser.id
+      podcast: {
+        connect: { id: podcast1.id }
+      },
+      user: {
+        connect: { id: adminUser.id }
+      }
     }
   });
   
@@ -304,8 +328,12 @@ async function main() {
       comment: "Tech Talk Today is my go-to tech podcast!",
       contentType: "podcast",
       contentId: podcast2.id,
-      podcastId: podcast2.id,
-      userId: normalUser.id
+      podcast: {
+        connect: { id: podcast2.id }
+      },
+      user: {
+        connect: { id: normalUser.id }
+      }
     }
   });
   
@@ -315,8 +343,12 @@ async function main() {
       comment: "Great health advice in this podcast series.",
       contentType: "podcast",
       contentId: podcast3.id,
-      podcastId: podcast3.id,
-      userId: adminUser.id
+      podcast: {
+        connect: { id: podcast3.id }
+      },
+      user: {
+        connect: { id: adminUser.id }
+      }
     }
   });
 
