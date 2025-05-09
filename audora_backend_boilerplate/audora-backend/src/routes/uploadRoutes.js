@@ -3,7 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { uploadAudio, getSignedUrl } from '../controllers/uploadController.js';
+import { uploadAudio, getSignedUrl, uploadImage } from '../controllers/uploadController.js';
+import { verifyToken } from '../middlewares/auth.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,11 +28,13 @@ const storage = multer.diskStorage({
 
 // File filter function
 const fileFilter = (req, file, cb) => {
-  // Accept audio files only
-  if (file.mimetype.startsWith('audio/')) {
+  // Check request path to determine file type
+  if (req.path === '/audio' && file.mimetype.startsWith('audio/')) {
+    cb(null, true);
+  } else if (req.path === '/image' && file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(new Error('Only audio files are allowed'), false);
+    cb(new Error(`Only ${req.path === '/audio' ? 'audio' : 'image'} files are allowed`), false);
   }
 };
 
@@ -44,8 +47,9 @@ const upload = multer({
   }
 });
 
-// Route for uploading audio files
-router.post('/audio', upload.single('audio'), uploadAudio);
+// Protected routes
+router.post('/audio', verifyToken, upload.single('audio'), uploadAudio);
+router.post('/image', verifyToken, upload.single('image'), uploadImage);
 
 // Route for getting signed URL for audio files
 router.get('/audio/:trackId/signed-url', getSignedUrl);

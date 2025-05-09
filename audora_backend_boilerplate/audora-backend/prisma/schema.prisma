@@ -11,9 +11,12 @@ model User {
   id        Int       @id @default(autoincrement())
   email     String    @unique
   name      String
+  password  String
+  role      String    @default("USER")
   createdAt DateTime  @default(now())
 
   playlists Playlist[]
+  reviews   Review[]
 }
 
 model Album {
@@ -22,6 +25,7 @@ model Album {
   artist    String
   coverUrl  String
   tracks    Track[]
+  reviews   Review[]
 }
 
 model Track {
@@ -42,6 +46,7 @@ model Podcast {
   host        String
   coverUrl    String
   episodes    Episode[]
+  reviews     Review[]
 }
 
 model Episode {
@@ -61,4 +66,22 @@ model Playlist {
   userId    Int
 
   tracks    Track[]  @relation("PlaylistTracks")
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  rating      Int
+  comment     String
+  contentType String
+  contentId   Int
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+
+  album       Album?   @relation(fields: [albumId], references: [id])
+  albumId     Int?
+
+  podcast     Podcast? @relation(fields: [podcastId], references: [id])
+  podcastId   Int?
 }
