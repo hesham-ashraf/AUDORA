@@ -12,7 +12,7 @@ import {
 } from '../components/MotionComponents';
 import {
   Play, Heart, Download, Clock, MoreHorizontal, MusicIcon,
-  ExternalLink, Share2, Pause, Shuffle, Repeat
+  ExternalLink, Share2, Pause, Shuffle, Repeat, Plus
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -25,6 +25,8 @@ const AlbumDetail = ({ setCurrentTrack }) => {
   const [reviewsRefresh, setReviewsRefresh] = useState(0);
   const [activeTrackId, setActiveTrackId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [favoriteTrackIds, setFavoriteTrackIds] = useState([]);
+  const [openMenuTrackId, setOpenMenuTrackId] = useState(null);
   const [colorData, setColorData] = useState({
     primary: 'rgb(92, 124, 250)',
     secondary: 'rgb(30, 58, 138)'
@@ -58,16 +60,75 @@ const AlbumDetail = ({ setCurrentTrack }) => {
     return () => clearTimeout(timer);
   }, [id]);
 
+  // Load favorites from localStorage
+  useEffect(() => {
+    try {
+      const savedFavorites = JSON.parse(localStorage.getItem('audora_favorites') || '[]');
+      const ids = savedFavorites.map(item => item.id);
+      setFavoriteTrackIds(ids);
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  }, []);
+
+  const toggleTrackFavorite = (e, track) => {
+    e.stopPropagation(); // Prevent track from playing when clicking the heart
+    
+    const trackId = track.id;
+    let updatedFavorites = [...favoriteTrackIds];
+    
+    if (updatedFavorites.includes(trackId)) {
+      // Remove from favorites
+      updatedFavorites = updatedFavorites.filter(id => id !== trackId);
+    } else {
+      // Add to favorites
+      updatedFavorites.push(trackId);
+    }
+    
+    setFavoriteTrackIds(updatedFavorites);
+    
+    // Update localStorage
+    try {
+      const savedFavorites = JSON.parse(localStorage.getItem('audora_favorites') || '[]');
+      
+      if (!favoriteTrackIds.includes(trackId)) {
+        // Add to favorites
+        savedFavorites.push({
+          id: trackId,
+          title: track.title,
+          artist: album.artist,
+          image: album.coverUrl,
+          audioUrl: track.audioUrl
+        });
+      } else {
+        // Remove from favorites
+        const updatedSavedFavorites = savedFavorites.filter(item => item.id !== trackId);
+        localStorage.setItem('audora_favorites', JSON.stringify(updatedSavedFavorites));
+      }
+      
+      localStorage.setItem('audora_favorites', JSON.stringify(savedFavorites));
+    } catch (error) {
+      console.error('Error updating favorites:', error);
+    }
+  };
+
+  const toggleTrackMenu = (e, trackId) => {
+    e.stopPropagation(); // Prevent track from playing when clicking the menu
+    setOpenMenuTrackId(openMenuTrackId === trackId ? null : trackId);
+  };
+
   const handleReviewSubmitted = () => {
     setReviewsRefresh(prev => prev + 1);
   };
 
   const playTrack = (track) => {
     setCurrentTrack({
-              title: track.title,
-              artist: album.artist,
-              image: album.coverUrl,
-              audioUrl: track.audioUrl
+      id: track.id,
+      title: track.title,
+      artist: album.artist,
+      image: album.coverUrl,
+      audioUrl: track.audioUrl,
+      duration: track.duration
     });
     setActiveTrackId(track.id);
     setIsPlaying(true);
@@ -97,6 +158,42 @@ const AlbumDetail = ({ setCurrentTrack }) => {
     if (album?.tracks?.length > 0) {
       playTrack(album.tracks[0]);
     }
+  };
+
+  const addToPlaylist = (e, track) => {
+    e.stopPropagation(); // Prevent bubbling
+    setOpenMenuTrackId(null); // Close menu
+    alert(`Feature coming soon: Add "${track.title}" to playlist`);
+  };
+
+  const shareTrack = (e, track) => {
+    e.stopPropagation(); // Prevent bubbling
+    setOpenMenuTrackId(null); // Close menu
+    
+    const shareText = `Listen to ${track.title} by ${album.artist} on Audora`;
+    if (navigator.share) {
+      navigator.share({
+        title: track.title,
+        text: shareText,
+        url: window.location.href
+      });
+    } else {
+      navigator.clipboard.writeText(shareText + ' - ' + window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  const downloadTrack = (e, track) => {
+    e.stopPropagation(); // Prevent bubbling
+    setOpenMenuTrackId(null); // Close menu
+    
+    // Create and trigger download
+    const a = document.createElement('a');
+    a.href = track.audioUrl;
+    a.download = `${album.artist} - ${track.title}.mp3`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   if (loading) {
@@ -351,15 +448,49 @@ const AlbumDetail = ({ setCurrentTrack }) => {
                     </div>
                     
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10">
-                        <Heart size={16} />
+                      <button 
+                        className={`${favoriteTrackIds.includes(track.id) ? 'text-red-500' : 'text-gray-400 hover:text-white'} p-1.5 rounded-full hover:bg-white/10`}
+                        onClick={(e) => toggleTrackFavorite(e, track)}
+                      >
+                        <Heart size={16} fill={favoriteTrackIds.includes(track.id) ? "currentColor" : "none"} />
                       </button>
-                      <button className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10">
+                      <button 
+                        className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10"
+                        onClick={(e) => downloadTrack(e, track)}
+                      >
                         <Download size={16} />
                       </button>
-                      <button className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10">
-                        <MoreHorizontal size={16} />
-                      </button>
+                      <div className="relative">
+                        <button 
+                          className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10"
+                          onClick={(e) => toggleTrackMenu(e, track.id)}
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                        
+                        {openMenuTrackId === track.id && (
+                          <div className="absolute right-0 bottom-full mb-1 bg-dark-200 border border-white/10 rounded-md shadow-lg w-48 z-50">
+                            <ul className="py-1 text-sm">
+                              <li>
+                                <button 
+                                  className="w-full px-4 py-2 text-left text-gray-300 hover:bg-dark-100 flex items-center gap-2"
+                                  onClick={(e) => addToPlaylist(e, track)}
+                                >
+                                  <Plus size={14} /> Add to Playlist
+                                </button>
+                              </li>
+                              <li>
+                                <button 
+                                  className="w-full px-4 py-2 text-left text-gray-300 hover:bg-dark-100 flex items-center gap-2"
+                                  onClick={(e) => shareTrack(e, track)}
+                                >
+                                  <Share2 size={14} /> Share Track
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 </StaggerItem>
@@ -440,7 +571,7 @@ const AlbumDetail = ({ setCurrentTrack }) => {
             </Card>
           </SlideUp>
         </div>
-    </div>
+      </div>
     </MainLayout>
   );
 };

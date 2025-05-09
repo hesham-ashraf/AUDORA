@@ -27,17 +27,17 @@ const MainLayout = ({ children }) => {
   const navigationItems = [
     { icon: <Home size={20} />, text: 'Home', path: '/' },
     { icon: <Search size={20} />, text: 'Search', path: '/search' },
+    { icon: <Music size={20} />, text: 'Albums', path: '/albums' },
     { icon: <Headphones size={20} />, text: 'Podcasts', path: '/podcasts' },
     { icon: <Radio size={20} />, text: 'Live', path: '/live-streaming' },
     { icon: <User size={20} />, text: 'Profile', path: '/profile' },
   ];
 
   const libraryItems = [
-    { icon: <Music size={20} />, text: 'Albums', path: '/albums' },
-    { icon: <PlusSquare size={20} />, text: 'Playlists', path: '/playlists', requireAuth: true },
+    { icon: <PlusSquare size={20} />, text: 'Playlists', path: '/playlists' },
     { icon: <Heart size={20} />, text: 'Liked', path: '/liked', requireAuth: true },
     { icon: <Clock size={20} />, text: 'Recently Played', path: '/history', requireAuth: true },
-    { icon: <Download size={20} />, text: 'Offline Library', path: '/offline-library', requireAuth: true },
+    { icon: <Download size={20} />, text: 'Offline Library', path: '/offline-library' },
   ];
 
   return (

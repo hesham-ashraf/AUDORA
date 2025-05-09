@@ -4,19 +4,30 @@ import {
   getAlbumById,
   createAlbum,
   deleteAlbum,
-  updateAlbum
+  updateAlbum,
+  getTrendingAlbums,
+  getAlbumsByGenre,
+  getRelatedAlbums,
+  getAllGenres,
+  recordAlbumPlay
 } from '../controllers/albumController.js';
-import { verifyToken, isAdmin } from '../middlewares/auth.js';
+import { authenticate, authenticateOptional } from '../middleware/auth.js';
+import { apiRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-// Public routes
-router.get('/', getAllAlbums);
-router.get('/:id', getAlbumById);
+// Public routes with rate limiting
+router.get('/', apiRateLimiter, getAllAlbums);
+router.get('/trending', apiRateLimiter, getTrendingAlbums);
+router.get('/genres', apiRateLimiter, getAllGenres);
+router.get('/genre/:genre', apiRateLimiter, getAlbumsByGenre);
+router.get('/:id', apiRateLimiter, authenticateOptional, getAlbumById);
+router.get('/:id/related', apiRateLimiter, getRelatedAlbums);
+router.post('/:id/play', apiRateLimiter, recordAlbumPlay);
 
-// Admin protected routes
-router.post('/', verifyToken, isAdmin, createAlbum);
-router.delete('/:id', verifyToken, isAdmin, deleteAlbum);
-router.patch('/:id', verifyToken, isAdmin, updateAlbum);
+// Protected routes requiring authentication
+router.post('/', authenticate, createAlbum);
+router.delete('/:id', authenticate, deleteAlbum);
+router.patch('/:id', authenticate, updateAlbum);
 
 export default router;
