@@ -9,6 +9,8 @@ import userRoutes from './userRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
 import authRoutes from './authRoutes.js';
 import reviewRoutes from './reviewRoutes.js';
+import homeRoutes from './homeRoutes.js';
+import searchRoutes from './searchRoutes.js';
 
 const router = express.Router();
 
@@ -22,6 +24,8 @@ router.use('/users', userRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/auth', authRoutes);
 router.use('/reviews', reviewRoutes);
+router.use('/home', homeRoutes);
+router.use('/search', searchRoutes);
 
 // Add route for live streams
 router.get('/live-streams', (req, res) => {

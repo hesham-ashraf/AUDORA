@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import { Headphones, LogIn } from 'lucide-react';
+import { Headphones, LogIn, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [previousPath, setPreviousPath] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if there's a redirect path when component mounts
+    const redirectPath = localStorage.getItem('redirectPath');
+    if (redirectPath) {
+      setPreviousPath(redirectPath);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,10 +26,22 @@ const Login = () => {
     
     try {
       await login(email, password);
-      navigate('/');
+      
+      // Check if there's a saved redirect path
+      const redirectPath = localStorage.getItem('redirectPath');
+      if (redirectPath) {
+        localStorage.removeItem('redirectPath'); // Clear it after use
+        navigate(redirectPath);
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message || 'Failed to login');
     }
+  };
+
+  const handleBack = () => {
+    navigate(previousPath);
   };
 
   return (
@@ -31,6 +52,17 @@ const Login = () => {
         transition={{ duration: 0.5 }}
         className="bg-dark-200/95 backdrop-blur-md p-8 rounded-lg shadow-lg w-full max-w-md border border-white/5"
       >
+        {previousPath && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={handleBack}
+            className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors mb-4 text-sm p-1 rounded-full hover:bg-white/10"
+          >
+            <ArrowLeft size={18} />
+          </motion.button>
+        )}
+
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-2">
             <motion.div
