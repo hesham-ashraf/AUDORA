@@ -11,13 +11,8 @@ model User {
   id        Int       @id @default(autoincrement())
   email     String    @unique
   name      String
-<<<<<<< HEAD
-  password String
-  role      String
-=======
   password  String
   role      String    @default("USER")
->>>>>>> Hesham
   createdAt DateTime  @default(now())
 
   playlists Playlist[]

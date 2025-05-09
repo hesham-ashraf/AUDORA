@@ -4,10 +4,10 @@
   "description": "Backend for AUDORA web app (Phase 2)",
   "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "dev": "nodemon --experimental-specifier-resolution=node src/index.js",
+    "start": "node --experimental-specifier-resolution=node src/index.js",
     "prisma": "prisma",
-    "seed": "node prisma/seed.js",
+    "seed": "node --experimental-specifier-resolution=node prisma/seed.js",
     "test": "jest --runInBand",
     "test:watch": "jest --watch --runInBand"
   },
