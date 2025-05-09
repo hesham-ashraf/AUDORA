@@ -1,204 +1,470 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import MainLayout from '../layout/MainLayout';
 import AlbumCard from '../components/AlbumCard';
-import axios from 'axios';
-import { albums as albumsData, podcasts as podcastsData } from '../utils/mockData';
+import { Search as SearchIcon, X, Mic, Music, User, Disc, Radio } from 'lucide-react';
+import api from '../services/api';
 import { Link } from 'react-router-dom';
+import { albums as albumsData, podcasts as podcastsData } from '../utils/mockData';
+import { debounce } from 'lodash';
+import { useAuth } from '../context/AuthContext';
 
 const Search = ({ setCurrentTrack }) => {
-  const [albums, setAlbums] = useState([]);
-  const [podcasts, setPodcasts] = useState([]);
+  const { user, isAuthenticated } = useAuth();
+  const [searchResults, setSearchResults] = useState({
+    albums: [],
+    tracks: [],
+    artists: [],
+    podcasts: []
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
 
-  // Debounce effect
+  // Fetch search history if authenticated
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 300);
+    if (isAuthenticated && user) {
+      fetchSearchHistory();
+    }
+  }, [isAuthenticated, user]);
 
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
-
-  // Fetch data once
-  useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setAlbums(albumsData);
-      setPodcasts(podcastsData);
-      setIsLoading(false);
-    }, 800);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Filtered results
-  const filteredAlbums = albums.filter(album =>
-    album.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-    album.artist.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-  );
-
-  const filteredPodcasts = podcasts.filter(podcast =>
-    podcast.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-    podcast.host.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-  );
-
-  // Get suggestions if there's a search term
-  const getSuggestions = () => {
-    if (debouncedSearchTerm.length < 2) return [];
-    
-    const suggestions = [];
-    
-    // Add album artists
-    albums.forEach(album => {
-      if (album.artist.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) &&
-          !suggestions.includes(album.artist)) {
-        suggestions.push(album.artist);
-      }
-    });
-    
-    // Add podcast hosts
-    podcasts.forEach(podcast => {
-      if (podcast.host.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) &&
-          !suggestions.includes(podcast.host)) {
-        suggestions.push(podcast.host);
-      }
-    });
-    
-    return suggestions.slice(0, 5); // Limit to 5 suggestions
+  const fetchSearchHistory = async () => {
+    try {
+      const response = await api.get('/search/history');
+      setSearchHistory(response.data.history || []);
+    } catch (error) {
+      console.error('Error fetching search history:', error);
+    }
   };
-  
-  const suggestions = getSuggestions();
+
+  // Save search to history
+  const saveToHistory = async (query) => {
+    if (!isAuthenticated || !query) return;
+    
+    try {
+      await api.post('/search/history', { query });
+      fetchSearchHistory();
+    } catch (error) {
+      console.error('Error saving search to history:', error);
+    }
+  };
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (term) => {
+      if (!term || term.length < 2) {
+        setSearchResults({
+          albums: [],
+          tracks: [],
+          artists: [],
+          podcasts: []
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const typeParam = activeTab !== 'all' ? `&type=${activeTab}` : '';
+        const response = await api.get(`/search?query=${encodeURIComponent(term)}${typeParam}`);
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error('Search error:', error);
+        
+        // Fallback to mock data if API fails
+        if (activeTab === 'all' || activeTab === 'albums') {
+          const filteredAlbums = albumsData.filter(album =>
+            album.title.toLowerCase().includes(term.toLowerCase()) ||
+            album.artist.toLowerCase().includes(term.toLowerCase())
+          );
+          setSearchResults(prev => ({ ...prev, albums: filteredAlbums }));
+        }
+        
+        if (activeTab === 'all' || activeTab === 'podcasts') {
+          const filteredPodcasts = podcastsData.filter(podcast =>
+            podcast.title.toLowerCase().includes(term.toLowerCase()) ||
+            podcast.host.toLowerCase().includes(term.toLowerCase())
+          );
+          setSearchResults(prev => ({ ...prev, podcasts: filteredPodcasts }));
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300),
+    [activeTab]
+  );
+
+  // Debounced autocomplete function
+  const debouncedAutocomplete = useCallback(
+    debounce(async (term) => {
+      if (!term || term.length < 2) {
+        setAutocompleteSuggestions([]);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/search/autocomplete?query=${encodeURIComponent(term)}`);
+        setAutocompleteSuggestions(response.data.suggestions || []);
+      } catch (error) {
+        console.error('Autocomplete error:', error);
+        
+        // Fallback suggestions from mock data
+        const albums = albumsData.filter(album => 
+          album.title.toLowerCase().startsWith(term.toLowerCase())
+        ).slice(0, 3);
+        
+        const artists = [...new Set(albumsData.map(album => album.artist))]
+          .filter(artist => artist.toLowerCase().startsWith(term.toLowerCase()))
+          .slice(0, 3);
+        
+        const suggestions = [
+          ...albums.map(album => ({ text: album.title, type: 'album' })),
+          ...artists.map(artist => ({ text: artist, type: 'artist' }))
+        ];
+        
+        setAutocompleteSuggestions(suggestions);
+      }
+    }, 150),
+    []
+  );
+
+  // Manage search term changes
+  useEffect(() => {
+    if (searchTerm.length >= 2) {
+      setIsLoading(true);
+      debouncedAutocomplete(searchTerm);
+    } else {
+      setAutocompleteSuggestions([]);
+    }
+  }, [searchTerm, debouncedAutocomplete]);
+
+  // Perform search when debounced term changes
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      debouncedSearch(debouncedSearchTerm);
+      saveToHistory(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm, debouncedSearch]);
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (value.trim() === '') {
+      setDebouncedSearchTerm('');
+      setShowSuggestions(false);
+    } else {
+      setShowSuggestions(true);
+    }
+  };
+
+  // Handle search form submission
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setDebouncedSearchTerm(searchTerm);
+    setShowSuggestions(false);
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion) => {
+    setSearchTerm(suggestion.text);
+    setDebouncedSearchTerm(suggestion.text);
+    setShowSuggestions(false);
+    
+    if (suggestion.type !== 'all') {
+      setActiveTab(suggestion.type + 's');
+    }
+  };
+
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (debouncedSearchTerm) {
+      debouncedSearch(debouncedSearchTerm);
+    }
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchTerm('');
+    setDebouncedSearchTerm('');
+    setSearchResults({
+      albums: [],
+      tracks: [],
+      artists: [],
+      podcasts: []
+    });
+  };
+
+  // Play a track
+  const playTrack = (track, album) => {
+    setCurrentTrack({
+      title: track.title,
+      artist: album.artist.name,
+      image: album.coverUrl,
+      audioUrl: track.audioUrl
+    });
+  };
 
   return (
     <MainLayout>
-      <div className="flex flex-col">
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold mb-2">Search</h2>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search for songs, artists, or podcasts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border border-gray-300 px-4 py-2 rounded-full text-sm w-full max-w-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-10"
-            />
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="relative mb-8">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Search for songs, artists, albums..."
+                className="w-full p-4 pr-12 pl-12 bg-dark-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-white"
+                onFocus={() => setShowSuggestions(!!searchTerm)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
+              <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
             
-            {suggestions.length > 0 && (
-              <div className="absolute z-10 w-full max-w-xl bg-white shadow-lg rounded-md mt-1 border border-gray-200">
-                {suggestions.map((suggestion, index) => (
-                  <div 
-                    key={index} 
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                    onClick={() => setSearchTerm(suggestion)}
-                  >
-                    {suggestion}
-                  </div>
-                ))}
+            {/* Autocomplete suggestions */}
+            {showSuggestions && autocompleteSuggestions.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full bg-dark-200 border border-dark-100 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+                <ul>
+                  {autocompleteSuggestions.map((suggestion, index) => (
+                    <li 
+                      key={`${suggestion.text}-${index}`}
+                      className="px-4 py-3 hover:bg-dark-100 cursor-pointer flex items-center gap-3"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion.type === 'album' && <Disc size={16} className="text-primary-400" />}
+                      {suggestion.type === 'artist' && <User size={16} className="text-primary-400" />}
+                      {suggestion.type === 'track' && <Music size={16} className="text-primary-400" />}
+                      {suggestion.type === 'podcast' && <Radio size={16} className="text-primary-400" />}
+                      <span>{suggestion.text}</span>
+                      <span className="text-xs text-gray-500 ml-auto">
+                        {suggestion.type.charAt(0).toUpperCase() + suggestion.type.slice(1)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-          </div>
+          </form>
         </div>
         
+        {/* Tab navigation when searching */}
+        {debouncedSearchTerm && (
+          <div className="flex gap-4 mb-6 border-b border-dark-100">
+            <button
+              className={`py-3 px-1 relative ${activeTab === 'all' ? 'text-primary-500 font-medium' : 'text-gray-400'}`}
+              onClick={() => handleTabChange('all')}
+            >
+              All
+              {activeTab === 'all' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-t-lg"></div>}
+            </button>
+            <button
+              className={`py-3 px-1 relative ${activeTab === 'albums' ? 'text-primary-500 font-medium' : 'text-gray-400'}`}
+              onClick={() => handleTabChange('albums')}
+            >
+              Albums
+              {activeTab === 'albums' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-t-lg"></div>}
+            </button>
+            <button
+              className={`py-3 px-1 relative ${activeTab === 'tracks' ? 'text-primary-500 font-medium' : 'text-gray-400'}`}
+              onClick={() => handleTabChange('tracks')}
+            >
+              Tracks
+              {activeTab === 'tracks' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-t-lg"></div>}
+            </button>
+            <button
+              className={`py-3 px-1 relative ${activeTab === 'artists' ? 'text-primary-500 font-medium' : 'text-gray-400'}`}
+              onClick={() => handleTabChange('artists')}
+            >
+              Artists
+              {activeTab === 'artists' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-t-lg"></div>}
+            </button>
+            <button
+              className={`py-3 px-1 relative ${activeTab === 'podcasts' ? 'text-primary-500 font-medium' : 'text-gray-400'}`}
+              onClick={() => handleTabChange('podcasts')}
+            >
+              Podcasts
+              {activeTab === 'podcasts' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-t-lg"></div>}
+            </button>
+          </div>
+        )}
+        
+        {/* Search Results */}
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <p className="text-gray-500">Loading content...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
           </div>
         ) : debouncedSearchTerm ? (
           <>
-            {filteredAlbums.length === 0 && filteredPodcasts.length === 0 ? (
+            {/* No results */}
+            {!searchResults.albums?.length && 
+             !searchResults.tracks?.length && 
+             !searchResults.artists?.length && 
+             !searchResults.podcasts?.length && (
               <div className="text-center py-8">
                 <p className="text-gray-500 text-lg">No results found for "{debouncedSearchTerm}"</p>
                 <p className="text-gray-400 mt-2">Try a different search term or browse our content</p>
               </div>
-            ) : (
-              <>
-                <h3 className="text-xl font-semibold mb-4 mt-4">Albums</h3>
-                {filteredAlbums.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
-                    {filteredAlbums.map((album) => (
-                      <Link to={`/albums/${album.id}`} key={`album-${album.id}`}>
-                        <AlbumCard
-                          title={album.title}
-                          artist={album.artist}
-                          image={album.coverUrl}
-                          onClick={() =>
-                            setCurrentTrack({
-                              title: album.title,
-                              artist: album.artist,
-                              image: album.coverUrl,
-                              audioUrl: album.tracks?.[0]?.audioUrl || ''
-                            })
-                          }
+            )}
+            
+            {/* Albums */}
+            {(activeTab === 'all' || activeTab === 'albums') && searchResults.albums?.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl font-semibold mb-4">Albums</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                  {searchResults.albums.map((album) => (
+                    <Link to={`/albums/${album.id}`} key={`album-${album.id}`}>
+                      <AlbumCard
+                        title={album.title}
+                        artist={album.artist?.name || album.artist}
+                        image={album.coverUrl}
+                        onClick={() => {
+                          setCurrentTrack({
+                            title: album.title,
+                            artist: album.artist?.name || album.artist,
+                            image: album.coverUrl,
+                            audioUrl: album.tracks?.[0]?.audioUrl || ''
+                          });
+                        }}
+                      />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Tracks */}
+            {(activeTab === 'all' || activeTab === 'tracks') && searchResults.tracks?.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl font-semibold mb-4">Tracks</h3>
+                <div className="bg-dark-200 rounded-lg overflow-hidden">
+                  {searchResults.tracks.map((track, index) => (
+                    <div 
+                      key={`track-${track.id}`}
+                      onClick={() => playTrack(track, track.album)}
+                      className="flex items-center p-4 hover:bg-dark-100 cursor-pointer border-b border-dark-300 last:border-b-0"
+                    >
+                      <div className="w-10 h-10 flex-shrink-0 mr-4">
+                        <img 
+                          src={track.album?.coverUrl} 
+                          alt={track.title} 
+                          className="w-full h-full object-cover rounded-md"
                         />
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 mb-8">No albums match your search.</p>
-                )}
-
-                <h3 className="text-xl font-semibold mb-4">Podcasts</h3>
-                {filteredPodcasts.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    {filteredPodcasts.map((podcast) => (
-                      <Link to={`/podcasts/${podcast.id}`} key={`podcast-${podcast.id}`} className="group">
-                        <div className="bg-white rounded-md overflow-hidden shadow hover:shadow-md transition-all duration-200">
-                          <div className="aspect-square overflow-hidden">
-                            <img
-                              src={podcast.coverUrl}
-                              alt={podcast.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          </div>
-                          <div className="p-4">
-                            <h4 className="font-semibold text-lg truncate">{podcast.title}</h4>
-                            <p className="text-sm text-gray-600 truncate">Host: {podcast.host}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {podcast.episodes?.length || 0} episode{podcast.episodes?.length !== 1 ? 's' : ''}
-                            </p>
-                            <button 
-                              className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded-full text-sm flex items-center justify-center gap-1"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCurrentTrack({
-                                  title: podcast.episodes?.[0]?.title || podcast.title,
-                                  artist: podcast.host,
-                                  image: podcast.coverUrl,
-                                  audioUrl: podcast.episodes?.[0]?.audioUrl || ''
-                                });
-                              }}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                                <path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clipRule="evenodd" />
-                              </svg>
-                              Play
-                            </button>
-                          </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-white truncate">{track.title}</h4>
+                        <p className="text-sm text-gray-400 truncate">{track.album?.artist?.name || track.album?.artist}</p>
+                      </div>
+                      <div className="text-sm text-gray-500 ml-4">
+                        {track.duration ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, '0')}` : '--:--'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Artists */}
+            {(activeTab === 'all' || activeTab === 'artists') && searchResults.artists?.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl font-semibold mb-4">Artists</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                  {searchResults.artists.map((artist) => (
+                    <Link to={`/artists/${artist.id}`} key={`artist-${artist.id}`} className="group">
+                      <div className="bg-dark-200 rounded-lg p-4 text-center transition-all hover:bg-dark-100">
+                        <div className="w-24 h-24 mx-auto rounded-full overflow-hidden mb-3">
+                          <img 
+                            src={artist.imageUrl || `https://i.pravatar.cc/150?u=${artist.name}`} 
+                            alt={artist.name} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
                         </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No podcasts match your search.</p>
-                )}
-              </>
+                        <h4 className="font-medium text-white truncate">{artist.name}</h4>
+                        <p className="text-xs text-gray-400">{artist._count?.albums || 0} albums</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Podcasts */}
+            {(activeTab === 'all' || activeTab === 'podcasts') && searchResults.podcasts?.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl font-semibold mb-4">Podcasts</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                  {searchResults.podcasts.map((podcast) => (
+                    <Link to={`/podcasts/${podcast.id}`} key={`podcast-${podcast.id}`} className="group">
+                      <div className="bg-dark-200 rounded-lg overflow-hidden">
+                        <div className="aspect-square overflow-hidden">
+                          <img 
+                            src={podcast.coverUrl} 
+                            alt={podcast.title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="p-3">
+                          <h3 className="font-medium text-white truncate">{podcast.title}</h3>
+                          <p className="text-sm text-gray-400 truncate">Host: {podcast.host?.name || podcast.host}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {podcast.episodes?.length || 0} episode{podcast.episodes?.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         ) : (
           <div className="py-12 text-center">
+            {/* Recent Searches (if authenticated) */}
+            {isAuthenticated && searchHistory.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl font-semibold mb-4">Recent Searches</h3>
+                <div className="flex flex-wrap justify-center gap-3 max-w-2xl mx-auto">
+                  {searchHistory.map((item, index) => (
+                    <button
+                      key={`history-${index}`}
+                      className="px-4 py-2 bg-dark-100 hover:bg-dark-200 text-white rounded-full transition-colors"
+                      onClick={() => {
+                        setSearchTerm(item.query);
+                        setDebouncedSearchTerm(item.query);
+                      }}
+                    >
+                      {item.query}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          
             <h3 className="text-xl font-semibold mb-3">Popular Categories</h3>
             <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto mb-8">
               {['Pop', 'Rock', 'Hip-Hop', 'Electronic', 'Jazz', 'Classical', 'R&B', 'Country', 
                 'Technology', 'True Crime', 'Health', 'Business', 'Comedy'].map(category => (
                 <div 
                   key={category}
-                  className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-full cursor-pointer"
-                  onClick={() => setSearchTerm(category)}
+                  className="px-6 py-3 bg-dark-100 hover:bg-dark-200 text-white font-medium rounded-full cursor-pointer transition-colors"
+                  onClick={() => {
+                    setSearchTerm(category);
+                    setDebouncedSearchTerm(category);
+                  }}
                 >
                   {category}
                 </div>
@@ -206,22 +472,22 @@ const Search = ({ setCurrentTrack }) => {
             </div>
             
             <h3 className="text-xl font-semibold mb-4 mt-8">Browse All</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              <Link to="/albums" className="bg-gradient-to-br from-purple-600 to-blue-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Albums</h4>
-                <p className="mt-2 text-white/80">Explore our music collection</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+              <Link to="/albums" className="bg-dark-100 hover:bg-dark-200 p-8 rounded-lg flex flex-col items-center transition-colors">
+                <Disc size={40} className="mb-4 text-primary-500" />
+                <span className="text-lg font-medium">Albums</span>
               </Link>
-              <Link to="/podcasts" className="bg-gradient-to-br from-green-500 to-teal-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Podcasts</h4>
-                <p className="mt-2 text-white/80">Discover interesting shows</p>
+              <Link to="/artists" className="bg-dark-100 hover:bg-dark-200 p-8 rounded-lg flex flex-col items-center transition-colors">
+                <User size={40} className="mb-4 text-primary-500" />
+                <span className="text-lg font-medium">Artists</span>
               </Link>
-              <Link to="/playlists" className="bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Playlists</h4>
-                <p className="mt-2 text-white/80">Browse curated playlists</p>
+              <Link to="/podcasts" className="bg-dark-100 hover:bg-dark-200 p-8 rounded-lg flex flex-col items-center transition-colors">
+                <Radio size={40} className="mb-4 text-primary-500" />
+                <span className="text-lg font-medium">Podcasts</span>
               </Link>
-              <Link to="/live-streaming" className="bg-gradient-to-br from-red-600 to-purple-600 rounded-lg p-6 text-white hover:shadow-lg transition-all">
-                <h4 className="text-xl font-bold">Live</h4>
-                <p className="mt-2 text-white/80">Join live streaming sessions</p>
+              <Link to="/playlists" className="bg-dark-100 hover:bg-dark-200 p-8 rounded-lg flex flex-col items-center transition-colors">
+                <Music size={40} className="mb-4 text-primary-500" />
+                <span className="text-lg font-medium">Playlists</span>
               </Link>
             </div>
           </div>

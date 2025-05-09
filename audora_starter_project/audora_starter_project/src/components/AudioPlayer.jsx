@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import offline from '../services/offline';
+import { Heart, Download, MoreHorizontal } from 'lucide-react';
 
 const AudioPlayer = ({ currentTrack }) => {
   const audioRef = useRef(null);
@@ -16,6 +17,8 @@ const AudioPlayer = ({ currentTrack }) => {
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [isHoveringProgress, setIsHoveringProgress] = useState(false);
   const [previewTime, setPreviewTime] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   // Setup online/offline listeners
   useEffect(() => {
@@ -179,6 +182,69 @@ const AudioPlayer = ({ currentTrack }) => {
     return '🔊';
   };
 
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite);
+    
+    // Store favorite tracks in localStorage
+    if (!currentTrack) return;
+    
+    try {
+      const favorites = JSON.parse(localStorage.getItem('audora_favorites') || '[]');
+      
+      if (!isFavorite) {
+        // Add to favorites
+        favorites.push({
+          id: currentTrack.id || Date.now(),
+          title: currentTrack.title,
+          artist: currentTrack.artist,
+          image: currentTrack.image,
+          audioUrl: currentTrack.audioUrl
+        });
+        localStorage.setItem('audora_favorites', JSON.stringify(favorites));
+      } else {
+        // Remove from favorites
+        const updatedFavorites = favorites.filter(
+          track => track.title !== currentTrack.title || track.artist !== currentTrack.artist
+        );
+        localStorage.setItem('audora_favorites', JSON.stringify(updatedFavorites));
+      }
+    } catch (error) {
+      console.error('Error updating favorites:', error);
+    }
+  };
+
+  const handleDownload = () => {
+    // Check if the audio URL exists
+    if (!currentTrack?.audioUrl) return;
+    
+    // Create an anchor element
+    const a = document.createElement('a');
+    a.href = currentTrack.audioUrl;
+    a.download = `${currentTrack.artist} - ${currentTrack.title}.mp3`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const toggleMenu = () => {
+    setShowMenu(!showMenu);
+  };
+
+  // Check if track is in favorites when a new track loads
+  useEffect(() => {
+    if (!currentTrack) return;
+    
+    try {
+      const favorites = JSON.parse(localStorage.getItem('audora_favorites') || '[]');
+      const isCurrentTrackFavorite = favorites.some(
+        track => track.title === currentTrack.title && track.artist === currentTrack.artist
+      );
+      setIsFavorite(isCurrentTrackFavorite);
+    } catch (error) {
+      console.error('Error checking favorites:', error);
+    }
+  }, [currentTrack]);
+
   if (!currentTrack || !currentTrack.audioUrl) return null;
 
   return (
@@ -308,6 +374,74 @@ const AudioPlayer = ({ currentTrack }) => {
         {!isOnline && (
           <span className="text-xs text-yellow-400 mr-2 bg-yellow-500/20 px-2 py-0.5 rounded-full">Offline Mode</span>
         )}
+        
+        <button 
+          onClick={toggleFavorite}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            isFavorite ? 'text-red-500 hover:bg-red-500/10' : 'text-gray-300 hover:bg-gray-800/40 hover:text-white'
+          }`}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+        </button>
+        
+        <button 
+          onClick={handleDownload}
+          className="w-8 h-8 text-gray-300 hover:bg-gray-800/40 hover:text-white rounded-full flex items-center justify-center"
+          title="Download"
+          disabled={!currentTrack?.audioUrl}
+        >
+          <Download size={18} />
+        </button>
+        
+        <div className="relative">
+          <button 
+            onClick={toggleMenu}
+            className="w-8 h-8 text-gray-300 hover:bg-gray-800/40 hover:text-white rounded-full flex items-center justify-center"
+            title="More options"
+          >
+            <MoreHorizontal size={18} />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-dark-200 rounded-lg shadow-lg border border-white/10 overflow-hidden z-50">
+              <ul className="py-1">
+                <li>
+                  <button 
+                    className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-dark-100 flex items-center gap-2"
+                    onClick={() => {
+                      window.open(`https://www.google.com/search?q=${encodeURIComponent(`${currentTrack.artist} ${currentTrack.title}`)}`);
+                      setShowMenu(false);
+                    }}
+                  >
+                    Search on Google
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-dark-100 flex items-center gap-2"
+                    onClick={() => {
+                      const shareText = `Listen to ${currentTrack.title} by ${currentTrack.artist} on Audora`;
+                      if (navigator.share) {
+                        navigator.share({
+                          title: currentTrack.title,
+                          text: shareText,
+                          url: window.location.href
+                        });
+                      } else {
+                        navigator.clipboard.writeText(shareText + ' - ' + window.location.href);
+                        alert('Link copied to clipboard!');
+                      }
+                      setShowMenu(false);
+                    }}
+                  >
+                    Share
+                  </button>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
         
         <button 
           onClick={toggleMute}

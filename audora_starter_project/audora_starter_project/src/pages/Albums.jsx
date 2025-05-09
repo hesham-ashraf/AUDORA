@@ -1,36 +1,92 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Music, Upload, Plus, Search } from 'lucide-react';
+import { Music, Upload, Plus, Search, Filter, ArrowUpDown, MoreHorizontal } from 'lucide-react';
 import MainLayout from '../layout/MainLayout';
 import AlbumCard from '../components/AlbumCard';
 import { useAuth } from '../context/AuthContext';
-import { albums } from '../utils/mockData';
+import { albums as mockAlbums } from '../utils/mockData';
 import { 
   FadeIn, SlideUp, StaggerContainer, StaggerItem 
 } from '../components/MotionComponents';
 import Button from '../components/ui/Button';
+import api from '../services/api';
 
 const Albums = ({ setCurrentTrack }) => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [allAlbums, setAllAlbums] = useState([]);
   const [userAlbums, setUserAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterQuery, setFilterQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [genres, setGenres] = useState([]);
+  const [selectedGenre, setSelectedGenre] = useState('');
+  const [sortBy, setSortBy] = useState('title');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [showSortOptions, setShowSortOptions] = useState(false);
+  const [showFilterOptions, setShowFilterOptions] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
 
-  // Check URL parameters for tab selection
+  // Check URL parameters for tab selection and filters
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
+    const genreParam = params.get('genre');
+    const sortByParam = params.get('sortBy');
+    const sortOrderParam = params.get('sortOrder');
+    const pageParam = params.get('page');
     
     if (tabParam === 'myAlbums' && isAuthenticated) {
-      console.log('Setting active tab to myAlbums from URL parameter');
       setActiveTab('myAlbums');
     }
+    
+    if (genreParam) {
+      setSelectedGenre(genreParam);
+    }
+    
+    if (sortByParam) {
+      setSortBy(sortByParam);
+    }
+    
+    if (sortOrderParam) {
+      setSortOrder(sortOrderParam);
+    }
+    
+    if (pageParam) {
+      setPagination(prev => ({ ...prev, page: parseInt(pageParam) }));
+    }
   }, [location.search, isAuthenticated]);
+
+  // Load genres
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const response = await api.get('/albums/genres');
+        setGenres(response.data);
+      } catch (error) {
+        console.error('Error fetching genres:', error);
+        // Fallback to mock genres
+        setGenres([
+          { id: 1, name: 'Pop' },
+          { id: 2, name: 'Rock' },
+          { id: 3, name: 'Hip-Hop' },
+          { id: 4, name: 'Electronic' },
+          { id: 5, name: 'Jazz' },
+          { id: 6, name: 'Classical' }
+        ]);
+      }
+    };
+    
+    fetchGenres();
+  }, []);
 
   // Function to load user albums from localStorage
   const loadUserAlbums = () => {
@@ -47,7 +103,7 @@ const Albums = ({ setCurrentTrack }) => {
         {
           id: 101,
           title: "User's Favorite Mix",
-          artist: "Various Artists",
+          artist: { name: "Various Artists" },
           coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
           createdAt: new Date().toISOString(),
           userAdded: true,
@@ -63,7 +119,7 @@ const Albums = ({ setCurrentTrack }) => {
         {
           id: 102,
           title: "My Acoustic Sessions",
-          artist: user?.name || "User",
+          artist: { name: user?.name || "User" },
           coverUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
           createdAt: new Date().toISOString(),
           userAdded: true,
@@ -87,20 +143,71 @@ const Albums = ({ setCurrentTrack }) => {
     }
   };
 
+  // Update URL params with current filtering and sorting
+  const updateUrlParams = (page = pagination.page) => {
+    const params = new URLSearchParams();
+    
+    if (activeTab !== 'all') {
+      params.set('tab', activeTab);
+    }
+    
+    if (selectedGenre) {
+      params.set('genre', selectedGenre);
+    }
+    
+    if (sortBy !== 'title') {
+      params.set('sortBy', sortBy);
+    }
+    
+    if (sortOrder !== 'asc') {
+      params.set('sortOrder', sortOrder);
+    }
+    
+    if (page > 1) {
+      params.set('page', page.toString());
+    }
+    
+    const queryString = params.toString();
+    navigate(queryString ? `?${queryString}` : '', { replace: true });
+  };
+
   // Load all albums and user albums
   useEffect(() => {
-    // Simulate loading data from backend
-    const timer = setTimeout(() => {
-      setAllAlbums(albums);
+    const fetchAlbums = async () => {
+      setLoading(true);
+      
+      try {
+        // Build query params for API request
+        const params = new URLSearchParams();
+        
+        if (selectedGenre) {
+          params.set('genre', selectedGenre);
+        }
+        
+        params.set('sortBy', sortBy);
+        params.set('sortOrder', sortOrder);
+        params.set('page', pagination.page.toString());
+        params.set('limit', pagination.limit.toString());
+        
+        const response = await api.get(`/albums?${params.toString()}`);
+        setAllAlbums(response.data.data);
+        setPagination(prev => ({
+          ...prev,
+          total: response.data.pagination.total,
+          totalPages: response.data.pagination.totalPages
+        }));
+      } catch (error) {
+        console.error('Error fetching albums:', error);
+        // Fallback to mock data
+        setAllAlbums(mockAlbums);
+      }
       
       // Only load user albums if authenticated
       if (isAuthenticated) {
         const userAlbumsData = loadUserAlbums();
         setUserAlbums(userAlbumsData);
-        console.log('User is authenticated, loaded albums:', userAlbumsData);
       } else {
         setUserAlbums([]);
-        console.log('User is not authenticated, no albums loaded');
       }
       
       setLoading(false);
@@ -109,10 +216,10 @@ const Albums = ({ setCurrentTrack }) => {
       setTimeout(() => {
         setIsFirstLoad(false);
       }, 2000);
-    }, 800);
+    };
     
-    return () => clearTimeout(timer);
-  }, [user, isAuthenticated]);
+    fetchAlbums();
+  }, [isAuthenticated, selectedGenre, sortBy, sortOrder, pagination.page, pagination.limit]);
 
   // Set up a listener for album upload events
   useEffect(() => {
@@ -123,10 +230,10 @@ const Albums = ({ setCurrentTrack }) => {
         if (savedAlbums) {
           const parsedAlbums = JSON.parse(savedAlbums);
           setUserAlbums(parsedAlbums);
-          console.log('Updated user albums after add:', parsedAlbums);
           
           // Automatically switch to My Albums tab after adding a new album
           setActiveTab('myAlbums');
+          updateUrlParams();
         }
       } catch (error) {
         console.error('Error handling album added event:', error);
@@ -146,17 +253,15 @@ const Albums = ({ setCurrentTrack }) => {
     
     if (activeTab === 'all') {
       filteredAlbums = [...allAlbums, ...userAlbums];
-      console.log('Displaying all albums:', filteredAlbums.length);
     } else if (activeTab === 'myAlbums') {
       filteredAlbums = [...userAlbums];
-      console.log('Displaying only user albums:', filteredAlbums.length);
     }
     
     if (filterQuery) {
       const query = filterQuery.toLowerCase();
       return filteredAlbums.filter(album => 
         album.title.toLowerCase().includes(query) || 
-        album.artist.toLowerCase().includes(query)
+        album.artist.name.toLowerCase().includes(query)
       );
     }
     
@@ -172,56 +277,43 @@ const Albums = ({ setCurrentTrack }) => {
       // Refresh user albums when switching to My Albums tab
       const userAlbumsData = loadUserAlbums();
       setUserAlbums(userAlbumsData);
-      console.log('Refreshed user albums when switching to My Albums tab:', userAlbumsData);
-    }
-  };
-
-  // For testing - manually add an album through the console
-  useEffect(() => {
-    if (isAuthenticated) {
-      window.addTestAlbum = () => {
-        const testAlbum = {
-          id: Date.now(),
-          title: "Test Album " + new Date().toLocaleTimeString(),
-          artist: user?.name || "Test User",
-          coverUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
-          createdAt: new Date().toISOString(),
-          userAdded: true,
-          tracks: [
-            {
-              id: Date.now(),
-              title: "Test Track",
-              duration: 180,
-              audioUrl: "https://res.cloudinary.com/dnbk3iouw/video/upload/v1746054425/after_hours_ded5tr.mp3"
-            }
-          ]
-        };
-        
-        try {
-          const existingAlbumsJSON = localStorage.getItem('userAlbums');
-          let existingAlbums = [];
-          
-          if (existingAlbumsJSON) {
-            existingAlbums = JSON.parse(existingAlbumsJSON);
-          }
-          
-          const updatedAlbums = [...existingAlbums, testAlbum];
-          localStorage.setItem('userAlbums', JSON.stringify(updatedAlbums));
-          window.dispatchEvent(new Event('albumAdded'));
-          console.log('Test album added successfully!', testAlbum);
-          return 'Album added successfully! Check the My Albums tab.';
-        } catch (error) {
-          console.error('Error adding test album:', error);
-        }
-      };
-      
-      console.log('Test function added. Run window.addTestAlbum() in console to add a test album');
     }
     
-    return () => {
-      delete window.addTestAlbum;
-    };
-  }, [isAuthenticated, user]);
+    // Reset filters when changing tabs
+    setPagination(prev => ({ ...prev, page: 1 }));
+    updateUrlParams(1);
+  };
+
+  const handleGenreChange = (genre) => {
+    setSelectedGenre(genre);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    updateUrlParams(1);
+    setShowFilterOptions(false);
+  };
+
+  const handleSortChange = (newSortBy) => {
+    if (sortBy === newSortBy) {
+      // Toggle sort order if clicking the same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
+    
+    setPagination(prev => ({ ...prev, page: 1 }));
+    updateUrlParams(1);
+    setShowSortOptions(false);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    
+    setPagination(prev => ({ ...prev, page: newPage }));
+    updateUrlParams(newPage);
+    
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <MainLayout>
@@ -278,8 +370,97 @@ const Albums = ({ setCurrentTrack }) => {
                 </div>
               )}
             </Button>
+            
+            {/* Filter button */}
+            <div className="relative">
+              <Button
+                variant="glass"
+                onClick={() => {
+                  setShowFilterOptions(!showFilterOptions);
+                  setShowSortOptions(false);
+                }}
+                className="flex items-center gap-2"
+              >
+                <Filter size={16} />
+                <span className="hidden sm:inline">
+                  {selectedGenre || 'Filter'}
+                </span>
+              </Button>
+              
+              {showFilterOptions && (
+                <div className="absolute z-50 mt-2 w-48 bg-dark-200 rounded-lg shadow-lg border border-dark-100 overflow-hidden">
+                  <div className="p-3 border-b border-dark-100">
+                    <h4 className="text-sm font-semibold text-white">Filter by Genre</h4>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto py-1">
+                    <button
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-dark-100 ${!selectedGenre ? 'text-primary-400' : 'text-gray-300'}`}
+                      onClick={() => handleGenreChange('')}
+                    >
+                      All Genres
+                    </button>
+                    {genres.map(genre => (
+                      <button
+                        key={genre.id || genre.name}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-dark-100 ${selectedGenre === genre.name ? 'text-primary-400' : 'text-gray-300'}`}
+                        onClick={() => handleGenreChange(genre.name)}
+                      >
+                        {genre.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Sort button */}
+            <div className="relative">
+              <Button
+                variant="glass"
+                onClick={() => {
+                  setShowSortOptions(!showSortOptions);
+                  setShowFilterOptions(false);
+                }}
+                className="flex items-center gap-2"
+              >
+                <ArrowUpDown size={16} />
+                <span className="hidden sm:inline">
+                  Sort
+                </span>
+              </Button>
+              
+              {showSortOptions && (
+                <div className="absolute z-50 mt-2 w-48 bg-dark-200 rounded-lg shadow-lg border border-dark-100 overflow-hidden">
+                  <div className="p-3 border-b border-dark-100">
+                    <h4 className="text-sm font-semibold text-white">Sort Albums</h4>
+                  </div>
+                  <div className="py-1">
+                    {[
+                      { id: 'title', label: 'Album Title' },
+                      { id: 'artist', label: 'Artist Name' },
+                      { id: 'releaseDate', label: 'Release Date' },
+                      { id: 'playCount', label: 'Popularity' }
+                    ].map(option => (
+                      <button
+                        key={option.id}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-dark-100 flex items-center justify-between ${sortBy === option.id ? 'text-primary-400' : 'text-gray-300'}`}
+                        onClick={() => handleSortChange(option.id)}
+                      >
+                        <span>{option.label}</span>
+                        {sortBy === option.id && (
+                          <span className="text-xs">
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
+          {/* Search input */}
           <div className="relative w-full md:w-64">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -305,6 +486,11 @@ const Albums = ({ setCurrentTrack }) => {
                 : `(${userAlbums.length} albums)`
               }
             </span>
+            {selectedGenre && (
+              <span className="ml-2">
+                • Filtered by <span className="text-primary-400">{selectedGenre}</span>
+              </span>
+            )}
           </p>
         </div>
 
@@ -341,34 +527,103 @@ const Albums = ({ setCurrentTrack }) => {
             ))}
           </div>
         ) : displayedAlbums().length > 0 ? (
-          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {displayedAlbums().map((album) => (
-              <StaggerItem key={album.id}>
-                <Link to={`/albums/${album.id}`}>
-                  <div className="relative group">
-                    <AlbumCard
-                      title={album.title}
-                      artist={album.artist}
-                      image={album.coverUrl}
-                      onClick={() =>
-                        setCurrentTrack({
-                          title: album.title,
-                          artist: album.artist,
-                          image: album.coverUrl,
-                          audioUrl: album.tracks?.[0]?.audioUrl || ''
-                        })
-                      }
-                    />
-                    {album.userAdded && (
-                      <div className="absolute top-2 right-2 bg-primary-600 text-white text-xs px-2 py-1 rounded-full z-10">
-                        My Upload
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
+          <>
+            <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {displayedAlbums().map((album) => (
+                <StaggerItem key={album.id}>
+                  <Link to={`/albums/${album.id}`}>
+                    <div className="relative group">
+                      <AlbumCard
+                        title={album.title}
+                        artist={album.artist.name || album.artist}
+                        image={album.coverThumbnail || album.coverUrl}
+                        onClick={() =>
+                          setCurrentTrack({
+                            title: album.title,
+                            artist: album.artist.name || album.artist,
+                            image: album.coverUrl,
+                            audioUrl: album.previewUrl || album.tracks?.[0]?.audioUrl || ''
+                          })
+                        }
+                      />
+                      {album.userAdded && (
+                        <div className="absolute top-2 right-2 bg-primary-600 text-white text-xs px-2 py-1 rounded-full z-10">
+                          My Upload
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                </StaggerItem>
+              ))}
+            </StaggerContainer>
+            
+            {/* Pagination controls */}
+            {activeTab === 'all' && pagination.totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-2 mt-10">
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={pagination.page === 1}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                >
+                  Previous
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {[...Array(Math.min(5, pagination.totalPages))].map((_, idx) => {
+                    // Calculate page numbers to show
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = idx + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = idx + 1;
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + idx;
+                    } else {
+                      pageNum = pagination.page - 2 + idx;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "primary" : "glass"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="w-10 h-10"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.totalPages}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={pagination.page === pagination.totalPages}
+                >
+                  Last
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
             <Music size={64} className="text-gray-600 mb-4" />
@@ -376,7 +631,7 @@ const Albums = ({ setCurrentTrack }) => {
             <p className="text-gray-400">
               {activeTab === 'myAlbums' 
                 ? "You haven't added any albums yet. Start by uploading your music!" 
-                : "No albums match your search. Try a different query."}
+                : "No albums match your search criteria. Try a different query or filter."}
             </p>
             {activeTab === 'myAlbums' && isAuthenticated && (
               <Link to="/admin-upload">
@@ -385,6 +640,15 @@ const Albums = ({ setCurrentTrack }) => {
                   <span>Upload Music</span>
                 </Button>
               </Link>
+            )}
+            {selectedGenre && (
+              <Button 
+                variant="glass" 
+                className="mt-4"
+                onClick={() => handleGenreChange('')}
+              >
+                Clear Genre Filter
+              </Button>
             )}
           </div>
         )}
