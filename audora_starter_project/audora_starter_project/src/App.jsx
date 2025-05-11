@@ -17,6 +17,9 @@ import Register from './pages/Register';
 import Profile from './pages/Profile'; // ✅ import the Profile page
 import OfflineLibrary from './pages/OfflineLibrary';
 import LiveStreaming from './pages/LiveStreaming';
+import Liked from './pages/Liked';
+import RecentlyPlayed from './pages/RecentlyPlayed';
+import Downloads from './pages/Downloads';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -79,6 +82,9 @@ const AnimatedRoutes = ({ children, setCurrentTrack }) => {
           />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/liked" element={<Liked />} />
+          <Route path="/history" element={<RecentlyPlayed setCurrentTrack={setCurrentTrack} />} />
+          <Route path="/downloads" element={<Downloads setCurrentTrack={setCurrentTrack} />} />
         </Routes>
       </PageTransition>
     </AnimatePresence>

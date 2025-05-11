@@ -38,6 +38,7 @@ const MainLayout = ({ children }) => {
     { icon: <Heart size={20} />, text: 'Liked', path: '/liked', requireAuth: true },
     { icon: <Clock size={20} />, text: 'Recently Played', path: '/history', requireAuth: true },
     { icon: <Download size={20} />, text: 'Offline Library', path: '/offline-library' },
+    { icon: <Download size={20} />, text: 'Downloads', path: '/downloads' },
   ];
 
   return (

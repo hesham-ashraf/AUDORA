@@ -5,6 +5,8 @@ import { ListMusic, Plus, Music, PlaySquare, Clock, User, Search } from 'lucide-
 import MainLayout from '../layout/MainLayout';
 import { FadeIn, StaggerContainer, StaggerItem } from '../components/MotionComponents';
 import Button from '../components/ui/Button';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const Playlists = () => {
   const [playlists, setPlaylists] = useState([]);
@@ -13,67 +15,25 @@ const Playlists = () => {
   const [sortOrder, setSortOrder] = useState('recent');
   const [title, setTitle] = useState('');
   const [trackIds, setTrackIds] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const mockPlaylists = [
-        {
-          id: 1,
-          title: 'Chill Vibes',
-          description: 'Relaxing tunes for unwinding after a long day',
-          coverUrl: 'https://images.unsplash.com/photo-1483412033650-1015ddeb83d1',
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          user: { name: 'Alex Martin', avatar: 'https://i.pravatar.cc/150?img=11' },
-          tracks: new Array(12).fill(null),
-          isPublic: true,
-        },
-        {
-          id: 2,
-          title: 'Workout Mix',
-          description: 'High energy tracks to fuel your workout',
-          coverUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438',
-          createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-          user: { name: 'Jordan Lee', avatar: 'https://i.pravatar.cc/150?img=12' },
-          tracks: new Array(18).fill(null),
-          isPublic: true,
-        },
-        {
-          id: 3,
-          title: 'Focus & Study',
-          description: 'Concentration-enhancing instrumentals',
-          coverUrl: 'https://images.unsplash.com/photo-1516062423079-7ca13cdc7f5a',
-          createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-          user: { name: 'Taylor Kim', avatar: 'https://i.pravatar.cc/150?img=13' },
-          tracks: new Array(24).fill(null),
-          isPublic: true,
-        },
-        {
-          id: 4,
-          title: 'Road Trip',
-          description: 'The perfect soundtrack for your next adventure',
-          coverUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800',
-          createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
-          user: { name: 'Morgan Smith', avatar: 'https://i.pravatar.cc/150?img=14' },
-          tracks: new Array(20).fill(null),
-          isPublic: true,
-        },
-        {
-          id: 5,
-          title: 'My Favorites',
-          description: 'A collection of tracks I love',
-          coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819',
-          createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-          user: { name: 'Sam Wilson', avatar: 'https://i.pravatar.cc/150?img=15' },
-          tracks: new Array(35).fill(null),
-          isPublic: false
-        }
-      ];
-      setPlaylists(mockPlaylists);
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    fetchPlaylists();
   }, []);
+
+  const fetchPlaylists = () => {
+    setLoading(true);
+    axios.get('http://localhost:5000/api/playlists')
+      .then(res => {
+        setPlaylists(res.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -83,30 +43,30 @@ const Playlists = () => {
     setSortOrder(order);
   };
 
-  const handleCreatePlaylist = async () => {
-    const userId = 1; // Example userId, replace with actual userId from context/state
-    const playlistData = {
-      title,
-      userId,
-      trackIds, // Can be empty or filled with selected track IDs
-    };
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    const userId = user?.id;
+    if (!userId) {
+      setError('You must be logged in to create a playlist.');
+      return;
+    }
+    if (!newTitle.trim()) return;
     try {
-      const response = await fetch('/api/playlists', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(playlistData),
+      await axios.post('http://localhost:5000/api/playlists', {
+        title: newTitle,
+        userId,
+        trackIds: []
       });
-      if (!response.ok) {
-        throw new Error('Failed to create playlist');
+      setNewTitle('');
+      setShowForm(false);
+      fetchPlaylists();
+      setError('');
+    } catch (err) {
+      let msg = 'Failed to create playlist';
+      if (err.response && err.response.data && err.response.data.error) {
+        msg += ': ' + err.response.data.error;
       }
-      const newPlaylist = await response.json();
-      console.log('Playlist created:', newPlaylist);
-      // Navigate to the newly created playlist page
-      navigate(`/playlists/${newPlaylist.id}`);
-    } catch (error) {
-      console.error('Error:', error);
+      setError(msg);
     }
   };
 
@@ -146,13 +106,29 @@ const Playlists = () => {
               <p className="text-gray-400">Discover curated music collections from our community</p>
             </div>
             <div className="mt-4 md:mt-0">
-              <Button variant="primary" className="flex items-center gap-2" onClick={handleCreatePlaylist}>
+              <Button variant="primary" className="flex items-center gap-2" onClick={() => setShowForm(!showForm)}>
                 <Plus size={16} />
                 <span>Create Playlist</span>
               </Button>
             </div>
           </div>
         </FadeIn>
+
+        {showForm && (
+          <form onSubmit={handleCreate} className="mb-6 flex gap-2">
+            <input
+              type="text"
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              placeholder="Playlist Title"
+              className="border px-2 py-1 rounded text-black"
+              required
+            />
+            <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded">Create</button>
+          </form>
+        )}
+
+        {error && <p className="text-red-500">{error}</p>}
 
         {/* Search and Filter */}
         <div className="mb-6 flex flex-col md:flex-row gap-4">

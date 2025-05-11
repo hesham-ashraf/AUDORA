@@ -245,6 +245,35 @@ const AudioPlayer = ({ currentTrack }) => {
     }
   }, [currentTrack]);
 
+  // Save to recently played when currentTrack changes
+  useEffect(() => {
+    if (!currentTrack || !currentTrack.audioUrl) return;
+    try {
+      const key = 'audora_recently_played';
+      let recent = [];
+      try {
+        recent = JSON.parse(localStorage.getItem(key)) || [];
+      } catch {
+        recent = [];
+      }
+      // Remove if already exists
+      recent = recent.filter(t => t.id !== currentTrack.id);
+      // Add to top
+      recent.unshift({
+        id: currentTrack.id,
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        image: currentTrack.image,
+        audioUrl: currentTrack.audioUrl
+      });
+      // Limit to 50 items
+      if (recent.length > 50) recent = recent.slice(0, 50);
+      localStorage.setItem(key, JSON.stringify(recent));
+    } catch (err) {
+      // ignore
+    }
+  }, [currentTrack]);
+
   if (!currentTrack || !currentTrack.audioUrl) return null;
 
   return (
@@ -375,21 +404,46 @@ const AudioPlayer = ({ currentTrack }) => {
           <span className="text-xs text-yellow-400 mr-2 bg-yellow-500/20 px-2 py-0.5 rounded-full">Offline Mode</span>
         )}
         
-        <button 
+        <button
           onClick={toggleFavorite}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-            isFavorite ? 'text-red-500 hover:bg-red-500/10' : 'text-gray-300 hover:bg-gray-800/40 hover:text-white'
-          }`}
-          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFavorite ? 'bg-pink-500 text-white' : 'text-gray-300 hover:bg-gray-800/40 hover:text-white'}`}
+          title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
         >
-          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+          <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
         </button>
-        
-        <button 
-          onClick={handleDownload}
-          className="w-8 h-8 text-gray-300 hover:bg-gray-800/40 hover:text-white rounded-full flex items-center justify-center"
+        {/* Download Button */}
+        <button
+          onClick={() => {
+            handleDownload();
+            // Save to localStorage downloads
+            if (!currentTrack) return;
+            try {
+              const key = 'audora_downloads';
+              let downloads = [];
+              try {
+                downloads = JSON.parse(localStorage.getItem(key)) || [];
+              } catch {
+                downloads = [];
+              }
+              // Remove if already exists (by id or audioUrl)
+              downloads = downloads.filter(t => t.id !== currentTrack.id && t.audioUrl !== currentTrack.audioUrl);
+              // Add to top
+              downloads.unshift({
+                id: currentTrack.id || Date.now(),
+                title: currentTrack.title,
+                artist: currentTrack.artist,
+                image: currentTrack.image,
+                audioUrl: currentTrack.audioUrl
+              });
+              // Limit to 50 items
+              if (downloads.length > 50) downloads = downloads.slice(0, 50);
+              localStorage.setItem(key, JSON.stringify(downloads));
+            } catch (err) {
+              // ignore
+            }
+          }}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:bg-gray-800/40 hover:text-white transition"
           title="Download"
-          disabled={!currentTrack?.audioUrl}
         >
           <Download size={18} />
         </button>
