@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ListMusic, Plus, Music, PlaySquare, Clock, User, Search } from 'lucide-react';
 import MainLayout from '../layout/MainLayout';
@@ -11,11 +11,12 @@ const Playlists = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('recent');
+  const [title, setTitle] = useState('');
+  const [trackIds, setTrackIds] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulating API fetch with a timeout
     const timer = setTimeout(() => {
-      // Mock data for playlists
       const mockPlaylists = [
         {
           id: 1,
@@ -25,7 +26,7 @@ const Playlists = () => {
           createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
           user: { name: 'Alex Martin', avatar: 'https://i.pravatar.cc/150?img=11' },
           tracks: new Array(12).fill(null),
-          isPublic: true
+          isPublic: true,
         },
         {
           id: 2,
@@ -35,7 +36,7 @@ const Playlists = () => {
           createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
           user: { name: 'Jordan Lee', avatar: 'https://i.pravatar.cc/150?img=12' },
           tracks: new Array(18).fill(null),
-          isPublic: true
+          isPublic: true,
         },
         {
           id: 3,
@@ -45,7 +46,7 @@ const Playlists = () => {
           createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
           user: { name: 'Taylor Kim', avatar: 'https://i.pravatar.cc/150?img=13' },
           tracks: new Array(24).fill(null),
-          isPublic: true
+          isPublic: true,
         },
         {
           id: 4,
@@ -55,7 +56,7 @@ const Playlists = () => {
           createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
           user: { name: 'Morgan Smith', avatar: 'https://i.pravatar.cc/150?img=14' },
           tracks: new Array(20).fill(null),
-          isPublic: true
+          isPublic: true,
         },
         {
           id: 5,
@@ -68,11 +69,9 @@ const Playlists = () => {
           isPublic: false
         }
       ];
-      
       setPlaylists(mockPlaylists);
       setLoading(false);
     }, 800);
-    
     return () => clearTimeout(timer);
   }, []);
 
@@ -84,8 +83,35 @@ const Playlists = () => {
     setSortOrder(order);
   };
 
+  const handleCreatePlaylist = async () => {
+    const userId = 1; // Example userId, replace with actual userId from context/state
+    const playlistData = {
+      title,
+      userId,
+      trackIds, // Can be empty or filled with selected track IDs
+    };
+    try {
+      const response = await fetch('/api/playlists', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(playlistData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create playlist');
+      }
+      const newPlaylist = await response.json();
+      console.log('Playlist created:', newPlaylist);
+      // Navigate to the newly created playlist page
+      navigate(`/playlists/${newPlaylist.id}`);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   const filteredAndSortedPlaylists = playlists
-    .filter(playlist => 
+    .filter((playlist) =>
       playlist.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       playlist.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       playlist.user.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -103,10 +129,10 @@ const Playlists = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   };
 
@@ -120,10 +146,7 @@ const Playlists = () => {
               <p className="text-gray-400">Discover curated music collections from our community</p>
             </div>
             <div className="mt-4 md:mt-0">
-              <Button 
-                variant="primary" 
-                className="flex items-center gap-2"
-              >
+              <Button variant="primary" className="flex items-center gap-2" onClick={handleCreatePlaylist}>
                 <Plus size={16} />
                 <span>Create Playlist</span>
               </Button>
@@ -137,34 +160,34 @@ const Playlists = () => {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={18} className="text-gray-400" />
             </div>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search playlists..."
               value={searchTerm}
               onChange={handleSearch}
               className="bg-dark-100 w-full pl-10 pr-4 py-2.5 rounded-lg border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-colors"
             />
           </div>
-          
+
           <div className="flex gap-2">
-            <Button 
-              variant={sortOrder === 'recent' ? 'primary' : 'glass'} 
+            <Button
+              variant={sortOrder === 'recent' ? 'primary' : 'glass'}
               onClick={() => handleSort('recent')}
               className="flex items-center gap-2"
             >
               <Clock size={16} />
               <span>Recent</span>
             </Button>
-            <Button 
-              variant={sortOrder === 'tracks' ? 'primary' : 'glass'} 
+            <Button
+              variant={sortOrder === 'tracks' ? 'primary' : 'glass'}
               onClick={() => handleSort('tracks')}
               className="flex items-center gap-2"
             >
               <Music size={16} />
               <span>Tracks</span>
             </Button>
-            <Button 
-              variant={sortOrder === 'alphabetical' ? 'primary' : 'glass'} 
+            <Button
+              variant={sortOrder === 'alphabetical' ? 'primary' : 'glass'}
               onClick={() => handleSort('alphabetical')}
               className="flex items-center gap-2"
             >
@@ -186,7 +209,7 @@ const Playlists = () => {
             <ListMusic size={48} className="text-gray-600 mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">No playlists found</h3>
             <p className="text-gray-400 mb-4 max-w-md">
-              {searchTerm ? "No playlists match your search criteria." : "There are no playlists available yet."}
+              {searchTerm ? 'No playlists match your search criteria.' : 'There are no playlists available yet.'}
             </p>
             <Button variant="primary" className="flex items-center gap-2">
               <Plus size={16} />
@@ -195,16 +218,16 @@ const Playlists = () => {
           </div>
         ) : (
           <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAndSortedPlaylists.map(playlist => (
+            {filteredAndSortedPlaylists.map((playlist) => (
               <StaggerItem key={playlist.id}>
                 <Link to={`/playlists/${playlist.id}`}>
-                  <motion.div 
+                  <motion.div
                     whileHover={{ y: -5, transition: { duration: 0.2 } }}
                     className="bg-dark-200/80 rounded-lg overflow-hidden border border-white/5 shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     <div className="relative aspect-square overflow-hidden">
-                      <img 
-                        src={playlist.coverUrl} 
+                      <img
+                        src={playlist.coverUrl}
                         alt={playlist.title}
                         className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                       />
@@ -217,7 +240,7 @@ const Playlists = () => {
                           )}
                         </div>
                         <p className="text-gray-300 text-sm line-clamp-2 mb-3">{playlist.description}</p>
-                        
+
                         <div className="flex justify-between items-center text-sm">
                           <div className="flex items-center text-gray-400">
                             <PlaySquare size={14} className="mr-1" />
@@ -230,11 +253,11 @@ const Playlists = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="p-4 border-t border-white/5">
                       <div className="flex items-center">
-                        <img 
-                          src={playlist.user.avatar} 
+                        <img
+                          src={playlist.user.avatar}
                           alt={playlist.user.name}
                           className="w-8 h-8 rounded-full mr-2 border border-white/10"
                         />
